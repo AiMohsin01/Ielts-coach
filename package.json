@@ -1,0 +1,15 @@
+{
+  "name": "ielts-ai-coach",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @ielts/api\" \"npm run dev -w @ielts/web\"",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "db:migrate": "npm run db:migrate -w @ielts/api",
+    "db:seed": "npm run db:seed -w @ielts/api",
+    "test:e2e": "npm run test:e2e -w @ielts/api"
+  },
+  "devDependencies": { "concurrently": "^9.1.2" }
+}

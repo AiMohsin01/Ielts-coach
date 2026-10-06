@@ -1,0 +1,3 @@
+import { pool } from "../db/pool.js";
+import type { Feedback } from "./ai/types.js";
+export async function rememberWeaknesses(userId: string, skill: "writing" | "speaking", feedback: Feedback) { for (const mistake of feedback.mistakes.slice(0, 5)) { const category = mistake.category.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "general_accuracy"; await pool.query("INSERT INTO student_weaknesses(user_id,skill,category,label) VALUES($1,$2,$3,$4) ON CONFLICT(user_id,skill,category) DO UPDATE SET occurrence_count=student_weaknesses.occurrence_count+1,label=EXCLUDED.label,last_seen_at=NOW()", [userId, skill, category, mistake.category]); } }

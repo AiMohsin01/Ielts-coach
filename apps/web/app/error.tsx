@@ -1,0 +1,2 @@
+"use client";
+export default function Error({reset}:{reset:()=>void}){return <main className="grid min-h-screen place-items-center p-5"><section className="card max-w-md text-center"><p className="text-3xl">⚠</p><h1 className="mt-3 text-2xl font-bold">Something went wrong</h1><p className="mt-2 text-slate-600">Please check your connection and try again.</p><button className="btn-primary mt-5" onClick={reset}>Try again</button></section></main>}

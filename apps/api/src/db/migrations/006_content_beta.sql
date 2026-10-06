@@ -1,0 +1,11 @@
+ALTER TABLE listening_tests ADD COLUMN difficulty VARCHAR(30), ADD COLUMN band_level NUMERIC(2,1), ADD COLUMN topic VARCHAR(100), ADD COLUMN estimated_minutes SMALLINT, ADD COLUMN tags JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE reading_tests ADD COLUMN difficulty VARCHAR(30), ADD COLUMN band_level NUMERIC(2,1), ADD COLUMN topic VARCHAR(100), ADD COLUMN estimated_minutes SMALLINT, ADD COLUMN tags JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE writing_tasks ADD COLUMN difficulty VARCHAR(30), ADD COLUMN band_level NUMERIC(2,1), ADD COLUMN tags JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE speaking_tests ADD COLUMN difficulty VARCHAR(30), ADD COLUMN band_level NUMERIC(2,1), ADD COLUMN topic VARCHAR(100), ADD COLUMN estimated_minutes SMALLINT, ADD COLUMN tags JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE vocabulary ADD COLUMN topic VARCHAR(100), ADD COLUMN band_level NUMERIC(2,1), ADD COLUMN tags JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE grammar_lessons ADD COLUMN band_level NUMERIC(2,1), ADD COLUMN tags JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE youtube_resources ADD COLUMN tags JSONB NOT NULL DEFAULT '[]', ADD COLUMN estimated_minutes SMALLINT;
+CREATE TABLE beta_feedback (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID REFERENCES users(id) ON DELETE SET NULL, feedback_type VARCHAR(20) NOT NULL CHECK(feedback_type IN ('feedback','bug','suggestion')), subject VARCHAR(200) NOT NULL, message TEXT NOT NULL, page_url TEXT, status VARCHAR(20) NOT NULL DEFAULT 'new' CHECK(status IN ('new','reviewing','resolved','closed')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE practice_events (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, skill VARCHAR(20) NOT NULL, content_type VARCHAR(30) NOT NULL, content_id UUID, question_id UUID, is_correct BOOLEAN, time_spent_seconds INTEGER CHECK(time_spent_seconds >= 0), topic VARCHAR(100), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE INDEX practice_events_student_idx ON practice_events(user_id,skill,created_at DESC);
+CREATE INDEX beta_feedback_status_idx ON beta_feedback(status,created_at DESC);

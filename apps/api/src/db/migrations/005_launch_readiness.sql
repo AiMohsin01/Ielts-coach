@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN weak_skills JSONB NOT NULL DEFAULT '[]';

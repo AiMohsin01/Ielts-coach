@@ -1,0 +1,4 @@
+export type Feedback = { strengths: string[]; mistakes: { category: string; explanation: string; correction?: string }[]; improvements: string[]; suggested_sentences: string[] };
+export type WritingEvaluation = { task_response: number; coherence: number; lexical_resource: number; grammar: number; overall_band: number; feedback: Feedback };
+export type SpeakingEvaluation = { fluency: number; lexical_resource: number; grammar: number; pronunciation: number; overall_band: number; feedback: Feedback };
+export interface AiProvider { evaluateWriting(input: { prompt: string; category: string; response: string }): Promise<WritingEvaluation>; transcribeAudio(filePath: string): Promise<string>; evaluateSpeaking(input: { question: string; part: string; transcript: string }): Promise<SpeakingEvaluation>; }
