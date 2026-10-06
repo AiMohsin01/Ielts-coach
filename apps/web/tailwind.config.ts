@@ -1,2 +1,2 @@
 import type { Config } from "tailwindcss";
-export default { content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"], theme: { extend: { colors: { ink: "#10233f", ocean: "#0f6e8c", mist: "#edf5f7", coral: "#f26b5b" } } }, plugins: [] } satisfies Config;
+export default { content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"], theme: { extend: { colors: { ink: "#3f0d12", ocean: "#b91c1c", mist: "#fef2f2", coral: "#f87171" } } }, plugins: [] } satisfies Config;
