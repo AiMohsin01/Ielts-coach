@@ -12,5 +12,6 @@
     "db:seed": "npm run db:seed -w @ielts/api",
     "test:e2e": "npm run test:e2e -w @ielts/api"
   },
-  "devDependencies": { "concurrently": "^9.1.2" }
+  "devDependencies": { "concurrently": "^9.1.2" },
+  "overrides": { "shell-quote": "^1.12.0" }
 }
