@@ -1,0 +1,13 @@
+"use client";
+import { Icon } from "./dashboard";
+import { useState } from "react";
+export const menuGroups = [
+  { title: "YOUR IELTS", items: [["Overview","grid","/"],["Study Plan","calendar","/dashboard/study-plan"],["Mock Tests","book","/dashboard/mock-tests"],["Part Practice","layers","/dashboard/part-practice"]] },
+  { title: "PRACTICE & LEARN", items: [["AI Speaking Partner","mic","/dashboard/ai-calling"],["AI Rewriter","pen","/dashboard/ai-rewriter"],["IELTS AI Chatbot","chat","/dashboard/ai-expert-teacher"],["Vocabulary","book","/dashboard/vocabulary"],["Grammar","pen","/dashboard/grammar"],["Typing Speed","bolt","/dashboard/typing-speed"],["Free Content Library","layers","/dashboard/content-library"]] },
+  { title: "YOUR PROGRESS", items: [["My Reports","chart","/dashboard/my-reports"],["Streaks","flame","/dashboard/streaks"],["Leaderboard","target","/dashboard/leaderboard"]] },
+  { title: "EXPLORE", items: [["Subscriptions","bolt","/dashboard/subscriptions"],["How to use IELTS Coach","book","/dashboard/tutorials"],["Support tickets","headphones","/dashboard/support"],["Refer & Earn","chat","/dashboard/refer-earn"]] },
+];
+export function WorkspaceNavigation({ path, close, staff = false }: { path: string; close: () => void; staff?: boolean }) {
+  const [expanded,setExpanded]=useState(path.startsWith("/dashboard/mock-tests"));
+  return <nav>{menuGroups.map(group => <div key={group.title}><small>{group.title}</small>{group.items.map(([label,icon,href]) => label === "Mock Tests" ? <div key={href}><button className={path.startsWith(href)?"nav-active":""} onClick={()=>setExpanded(!expanded)} aria-expanded={expanded}><Icon name={icon}/><span>{label}</span><span className="nav-chevron">{expanded?"⌃":"⌄"}</span></button>{expanded&&<div className="sidebar-subnav"><a href="/dashboard/mock-tests" onClick={close}>All practice tests</a>{["Reading","Listening","Writing","Speaking"].map(skill=><a key={skill} href={`/practice/${skill.toLowerCase()}`} onClick={close}>{skill}</a>)}</div>}</div>:<a key={href} href={href} onClick={close} className={(href === "/" ? path === "/" : path.startsWith(href)) ? "nav-active" : ""} aria-current={(href === "/" ? path === "/" : path.startsWith(href)) ? "page" : undefined}><Icon name={icon}/><span>{label}</span>{label === "Free Content Library" && <span className="library-free">FREE</span>}</a>)}</div>)}{staff && <a href="/admin/content"><Icon name="layers"/>Content management</a>}<a href="/privacy"><Icon name="target"/>Privacy</a></nav>;
+}

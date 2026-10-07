@@ -1,115 +1,48 @@
-const features: [string, string][] = [
-  ["Preppy AI", "Instant writing and speaking feedback with band estimates."],
-  ["Study plan", "A daily roadmap built around your weaknesses."],
-  ["Mocks", "Full Listening, Reading, Writing, and Speaking tests."],
-  ["Detailed feedback", "Rubric-by-rubric comments you can act on."],
-  ["Statistics", "Track band history, streaks, and exam countdown."],
-  ["Games", "Short practice games to keep momentum."],
-  ["Vocabulary", "Spaced-review academic word flashcards."],
-  ["Exam mode", "Timed conditions that mirror the real test."],
+"use client";
+import { useEffect, useRef, useState } from "react";
+
+const skills = [
+  { name: "Writing", icon: "✎", color: "blue", title: "প্রতিটি লেখায়, আরও এক ধাপ এগিয়ে।", description: "Task 1 ও Task 2 প্র্যাকটিস করো। AI feedback থেকে বুঝে নাও কোথায় উন্নতি দরকার, আর পরের লেখাটা করো আরও ভালো।", tags: ["Task 1 & Task 2", "Band estimates", "Detailed feedback"] },
+  { name: "Speaking", icon: "♬", color: "green", title: "নিজের কণ্ঠেই তৈরি হোক আত্মবিশ্বাস।", description: "Cue card ধরে উত্তর রেকর্ড করো। নিজের fluency, vocabulary ও grammar নিয়ে ফিডব্যাক পাও এবং নিয়মিত প্র্যাকটিসের অভ্যাস গড়ো।", tags: ["Part 1, 2 & 3", "Record answers", "AI evaluation"] },
+  { name: "Reading", icon: "▤", color: "purple", title: "শুধু পড়া নয়, সঠিক উত্তর খুঁজে পাওয়া।", description: "প্যাসেজ পড়ে বিভিন্ন ধরনের প্রশ্নের উত্তর দাও। টাইমড প্র্যাকটিস আর স্কোর দেখে নিজের প্রস্তুতি যাচাই করো।", tags: ["Practice passages", "Timed practice", "Instant scoring"] },
+  { name: "Listening", icon: "♫", color: "orange", title: "প্রতিটি শব্দে আরও একটু মনোযোগ।", description: "অডিও শুনে প্রশ্নের উত্তর দাও, নিজের স্কোর দেখো এবং পরের সেশনের জন্য প্রস্তুত হও। চারটি স্কিলের প্রস্তুতি এখন এক জায়গায়।", tags: ["Audio practice", "Section-based tests", "Answer review"] },
+];
+const faqs = [
+  ["IELTS AI Coach কীভাবে সাহায্য করবে?", "এক জায়গায় চারটি IELTS skill প্র্যাকটিস, personal study plan, vocabulary review এবং progress tracking পাবে। AI evaluation চালু থাকলে writing ও speaking feedback-ও পাওয়া যাবে।"],
+  ["প্র্যাকটিস শুরু করতে কি পেমেন্ট লাগবে?", "এই প্রজেক্টের প্র্যাকটিস ফিচারগুলো বিনামূল্যে ব্যবহার করা যায়। অ্যাকাউন্ট তৈরি করে তোমার লক্ষ্য সেট করলেই শুরু করতে পারবে।"],
+  ["AI-এর band score কি অফিসিয়াল?", "না। AI feedback ও band score হলো প্র্যাকটিসের আনুমানিক মূল্যায়ন। এটি অফিসিয়াল IELTS ফলাফল বা নির্দিষ্ট স্কোর পাওয়ার নিশ্চয়তা নয়।"],
+  ["ফোন থেকে ব্যবহার করা যাবে?", "হ্যাঁ। ফোন, ট্যাবলেট ও কম্পিউটার থেকে ব্যবহার করতে পারবে। Speaking recording-এর জন্য ব্রাউজারে microphone permission দিতে হবে।"],
+  ["আমার জন্য study plan কীভাবে তৈরি হবে?", "তোমার profile-এ current level, target band ও পরীক্ষার তারিখ দাও। তোমার দুর্বলতা ও দৈনিক পড়ার সময় অনুযায়ী study plan সাজানো হবে।"],
 ];
 
-const testimonials: [string, string, string][] = [
-  ["Ayesha", "Dhaka", "Got a 7.0 after six weeks. The daily plan told me exactly what to do each morning."],
-  ["Karim", "Chittagong", "The writing feedback is more useful than my paid tutor's comments."],
-  ["Nabila", "Sylhet", "Speaking cue-card practice every day removed my exam-day panic."],
-];
+function Preview({ skill }: { skill: number }) {
+  return <div className={`coach-preview ${skills[skill].color}`} key={skill}>
+    <div className="preview-top"><span><i /> {skills[skill].name} workspace</span><span className="sample-label">SAMPLE PREVIEW</span></div>
+    {skill === 0 ? <><div className="preview-score"><div><small>Task 2 · Essay feedback</small><h3>A little feedback.<br />A big step forward.</h3></div><div className="band-circle"><strong>7.0</strong><small>EST. BAND</small></div></div><div className="score-bars">{[["Task response", "78%"], ["Coherence & cohesion", "68%"], ["Lexical resource", "82%"], ["Grammar", "74%"]].map(([label,width]) => <div key={label}><span>{label}</span><div><i style={{width}} /></div></div>)}</div><p className="preview-note">✦ Start each paragraph with a clear topic sentence.</p></> : skill === 1 ? <><div className="record-orb">♬</div><h3 className="center">Your next conversation starts here.</h3><p className="cue">Describe a place you would love to visit.</p><div className="wave" aria-hidden="true">{Array.from({length:25},(_,i)=><i key={i} style={{animationDelay:`${i*.09}s`,height:`${12+(i*13)%32}px`}} />)}</div><p className="center subtle">Record. Reflect. Try again.</p></> : skill === 2 ? <><small>READING · PRACTICE PASSAGE</small><h3>The cities of tomorrow</h3><p className="reading-copy">As cities grow, green spaces play an increasingly important role in the lives of their residents. Urban gardens offer more than a place to relax…</p><div className="reading-question">Green spaces can benefit city residents.<div><span className="selected-answer">True ✓</span><span>False</span><span>Not given</span></div></div></> : <><div className="record-orb">♫</div><h3 className="center">Listen closely. Learn confidently.</h3><div className="audio-track"><span>▶</span><div><i /></div><small>01:23 / 03:05</small></div><div className="reading-question">Complete the notes<span className="answer-line">Meeting point: <b>main entrance</b></span><span className="answer-line">Group size: <b>12 people</b></span></div></>}
+  </div>;
+}
 
-const faqs: [string, string][] = [
-  ["Is it really free?", "Yes. Every practice feature works without payment. AI evaluation uses a free local model or your own API key."],
-  ["How is GoPrep different from other platforms?", "One coach plans your day, grades your answers, and tracks your progress in a single place."],
-  ["Can I use it on my phone?", "Yes. The web app is mobile-first and can be installed as a PWA."],
-  ["Are the practice tests official?", "Our content mirrors the IELTS format but is not official IELTS material."],
-];
-
-export function Landing({ start }: { start: () => void }) {
-  return (
-    <main className="bg-white text-slate-800">
-      {/* Nav */}
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <b className="text-lg font-extrabold tracking-tight text-red-700">IELTS AI COACH</b>
-        <div className="flex items-center gap-5 text-sm font-medium text-slate-600">
-          <a href="#platform" className="hidden hover:text-red-700 sm:block">Platform</a>
-          <a href="#reviews" className="hidden hover:text-red-700 sm:block">Reviews</a>
-          <a href="#faq" className="hidden hover:text-red-700 sm:block">FAQ</a>
-          <button className="btn-secondary" onClick={start}>Log in</button>
-          <button className="btn-primary" onClick={start}>Start</button>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className="mx-auto max-w-6xl px-5 pb-16 pt-10 text-center lg:pt-16">
-        <p className="font-semibold tracking-widest text-red-700">FREE FOR EVERY STUDENT</p>
-        <h1 className="mx-auto mt-5 max-w-3xl text-5xl font-extrabold leading-tight text-red-950 sm:text-6xl">
-          Get the band score you want — <span className="text-red-600">on your first try</span>
-        </h1>
-        <p className="mx-auto mt-6 max-w-xl text-lg text-slate-600">
-          AI prep for Academic &amp; General Training IELTS — 8 tools in one.
-        </p>
-        <div className="mt-8 flex justify-center gap-3">
-          <button className="btn-primary px-7 py-3.5 text-base" onClick={start}>Start preparation</button>
-          <a className="btn-secondary px-7 py-3.5 text-base" href="#platform">Platform</a>
-        </div>
-        <div className="mx-auto mt-12 grid max-w-3xl grid-cols-3 gap-4 text-center">
-          {[["8", "tools in one"], ["4", "IELTS skills"], ["0৳", "to start"]].map(([a, b]) => (
-            <div key={b}><p className="text-4xl font-extrabold text-red-700">{a}</p><p className="text-sm text-slate-500">{b}</p></div>
-          ))}
-        </div>
-      </section>
-
-      {/* Platform */}
-      <section id="platform" className="bg-mist py-16">
-        <div className="mx-auto max-w-6xl px-5">
-          <h2 className="text-3xl font-bold text-red-950">Take a look inside the platform</h2>
-          <p className="mt-2 text-slate-600">Everything you need to plan, practise, and improve.</p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map(([a, b]) => (
-              <article className="card transition hover:-translate-y-1 hover:shadow-md hover:ring-red-100" key={a}>
-                <span className="inline-block h-2 w-8 rounded-full bg-red-600" />
-                <h3 className="mt-3 font-bold text-red-950">{a}</h3>
-                <p className="mt-2 text-sm text-slate-600">{b}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section id="reviews" className="mx-auto max-w-6xl px-5 py-16">
-        <h2 className="text-3xl font-bold text-red-950">Our grateful students</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {testimonials.map(([n, c, q]) => (
-            <figure className="card" key={n}>
-              <blockquote className="leading-7 text-slate-700">“{q}”</blockquote>
-              <figcaption className="mt-4 font-semibold text-red-800">{n} <span className="font-normal text-slate-500">· {c}</span></figcaption>
-            </figure>
-          ))}
-        </div>
-      </section>
-
-      {/* Guarantee */}
-      <section className="bg-gradient-to-r from-red-700 to-red-800 px-5 py-16 text-center text-white">
-        <h2 className="text-3xl font-bold">Quality preparation should always be free.</h2>
-        <p className="mx-auto mt-3 max-w-xl text-red-100">No payment walls. No compulsory premium account. Run the AI locally or learn from the complete practice library.</p>
-        <button className="mt-7 rounded-xl bg-white px-7 py-3.5 font-semibold text-red-700 shadow-sm transition hover:bg-red-50" onClick={start}>Begin your free plan</button>
-      </section>
-
-      {/* FAQ */}
-      <section id="faq" className="mx-auto max-w-3xl px-5 py-16">
-        <h2 className="text-3xl font-bold text-red-950">Frequently asked questions</h2>
-        <div className="mt-8 divide-y divide-red-100">
-          {faqs.map(([q, a]) => (
-            <details key={q} className="group py-4">
-              <summary className="cursor-pointer list-none font-semibold text-red-950 group-open:text-red-700">{q}</summary>
-              <p className="mt-2 leading-7 text-slate-600">{a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      <footer className="bg-red-950 px-5 py-6 text-center text-sm text-red-300">
-        IELTS AI Coach — free IELTS preparation for every student.
-      </footer>
-    </main>
-  );
+export function Landing({ start, login }: { start: () => void; login: () => void }) {
+  const [menu, setMenu] = useState(false);
+  const [skill, setSkill] = useState(0);
+  const [motion, setMotion] = useState(true);
+  const root = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add("visible"); observer.unobserve(entry.target); } }), { threshold: .08 });
+    root.current?.querySelectorAll(".reveal").forEach(node => observer.observe(node));
+    return () => observer.disconnect();
+  }, []);
+  return <main ref={root} className={`coach-landing ${motion ? "" : "motion-paused"}`} lang="bn">
+    <header className="coach-header"><div className="coach-nav wrap"><a className="coach-brand" href="#home" aria-label="IELTS AI Coach home">IELTS<span>coach</span><sup>AI</sup></a><nav className={menu ? "nav-links is-open" : "nav-links"} aria-label="Main navigation"><a href="#practice" onClick={()=>setMenu(false)}>Practice</a><a href="#features" onClick={()=>setMenu(false)}>AI Features</a><a href="#study-plan" onClick={()=>setMenu(false)}>Study plan</a><a href="#faq" onClick={()=>setMenu(false)}>FAQ</a></nav><div className="nav-actions"><span className="country">🇧🇩 বাংলা</span><button className="login-link" onClick={login}>Sign in</button><button className="coach-button small" onClick={start}>ফ্রিতে শুরু করো <span>↗</span></button><button className="menu-toggle" aria-label="Toggle navigation" aria-expanded={menu} onClick={()=>setMenu(!menu)}>{menu ? "✕" : "☰"}</button></div></div></header>
+    <section id="home" className="coach-hero"><div className="hero-grid" aria-hidden="true"/><div className="hero-glow" aria-hidden="true"/><div className="wrap hero-content"><div className="eyebrow hero-enter"><i/> তোমার নিজের AI-powered IELTS coach</div><h1 className="hero-enter">বড় স্বপ্নের শুরু হোক<br/> <span className="gradient-text">তোমার সেরা প্রস্তুতিতে।</span></h1><p className="hero-description hero-enter">প্র্যাকটিস, পার্সোনাল study plan আর AI feedback — সব এক জায়গায়।<br className="desktop-break"/> তোমার IELTS journey-তে প্রতিদিন এগিয়ে যাও, নিজের গতিতে।</p><div className="hero-buttons hero-enter"><button className="coach-button" onClick={start}>ফ্রিতে প্র্যাকটিস শুরু করো <span>↗</span></button><a className="coach-button outline" href="#practice"><span className="play-icon">▶</span> প্ল্যাটফর্মটি দেখো</a></div><div className="hero-assurances hero-enter"><span>✓ ফ্রি প্র্যাকটিস</span><span>✓ কোনো ক্রেডিট কার্ড লাগবে না</span><span>✓ নিজের সময়ে শেখো</span></div>
+    <div className="hero-product hero-enter"><div className="product-title"><span><i/><i/><i/></span><small>YOUR PERSONAL IELTS WORKSPACE</small><span className="live-label">● Ready to learn</span></div><div className="product-body"><aside><div className="mini-brand">IELTS<span>coach</span></div><div className="mini-nav active">◫ <span>Overview</span></div><div className="mini-nav">◷ <span>Study plan</span></div><div className="mini-nav">✎ <span>Practice</span></div><div className="mini-nav">↗ <span>Progress</span></div><div className="sidebar-bottom">ONE DAY.<br/>ONE STEP CLOSER.</div></aside><div className="product-main"><div className="product-greeting"><div><small>LET’S MAKE TODAY COUNT</small><h3>Your next band starts here <span>✦</span></h3></div><span className="avatar">You</span></div><div className="mock-stats"><div><span>Target band</span><strong>7.5 <small>↗ Your goal</small></strong></div><div><span>Daily practice</span><strong>30 <small>minutes</small></strong></div><div><span>Skills to explore</span><strong>04 <small>all in one</small></strong></div></div><div className="mock-bottom"><div className="today-plan"><div className="panel-heading"><b>Today’s focus</b><span>Personal study plan</span></div>{[["✎","Writing practice","Build a stronger introduction","15 min"],["♬","Speaking session","Describe a memorable journey","10 min"],["▤","Vocabulary review","Make new words stick","5 min"]].map(([icon,title,desc,time])=><div className="plan-row" key={title}><i>{icon}</i><div><b>{title}</b><small>{desc}</small></div><span>{time}</span></div>)}</div><div className="progress-card"><span>CONSISTENCY IS EVERYTHING</span><h4>Small steps.<br/>Real progress.</h4><div className="mini-chart" aria-hidden="true">{[26,39,35,57,64,74,95].map((h,i)=><i key={i} style={{height:`${h}%`,animationDelay:`${i*.12}s`}} />)}</div><small>Illustrative progress preview</small></div></div></div></div><div className="floating-feedback"><span>✦</span><div><b>A clearer way forward</b><small>Practice → Feedback → Progress</small></div></div></div></div></section>
+    <div className="feature-ticker"><div className="ticker-track">{[0,1].map(n=><div aria-hidden={n===1} key={n}>{["AI WRITING FEEDBACK","SPEAKING PRACTICE","PERSONAL STUDY PLAN","ALL FOUR SKILLS","VOCABULARY BUILDER","PROGRESS TRACKING"].map(t=><span key={t}>{t}<i>✦</i></span>)}</div>)}</div><button onClick={()=>setMotion(!motion)} aria-label={motion ? "Pause animations" : "Play animations"}>{motion ? "Ⅱ" : "▶"}</button></div>
+    <section id="features" className="section wrap"><div className="section-heading reveal"><span className="section-label">A LITTLE CLARITY. A LOT MORE CONFIDENCE.</span><h2>প্রস্তুতির বাধাগুলো চেনা।<br/><span>এবার এগিয়ে যাওয়ার পালা।</span></h2><p>কী পড়বে, কীভাবে প্র্যাকটিস করবে, কোথায় উন্নতি দরকার — একসাথেই জানো।</p></div><div className="feature-cards">{[["01","✎","লিখছো, কিন্তু ভুল বুঝতে পারছো না?","AI feedback থেকে তোমার লেখার strengths আর improvement areas খুঁজে নাও।","Writing feedback","#practice"],["02","♬","স্পিকিং প্র্যাকটিস হচ্ছে না নিয়মিত?","Cue card বেছে নাও, উত্তর রেকর্ড করো, নিজের প্রস্তুতি এগিয়ে নাও।","Speaking practice","#practice"],["03","◷","আজ কী পড়বে, ভাবতেই সময় শেষ?","তোমার লক্ষ্য আর দুর্বলতা অনুযায়ী personal study plan ফলো করো।","Your daily roadmap","#study-plan"]].map(([n,icon,title,desc,label,href])=><article className="feature-card reveal" key={n}><div className="feature-card-top"><span>{icon}</span><small>{n} /</small></div><h3>{title}</h3><p>{desc}</p><a href={href}>{label} <span>↗</span></a></article>)}</div></section>
+    <section id="practice" className="practice-section section"><div className="wrap"><div className="section-heading reveal"><span className="section-label">FOUR SKILLS. ONE WORKSPACE.</span><h2>যে স্কিলেই ফোকাস হোক,<br/><span>প্রস্তুতি চলুক এক জায়গায়।</span></h2><p>একটি স্কিল বেছে নিয়ে প্ল্যাটফর্মের নমুনা দেখে নাও।</p></div><div className="skill-tabs" role="tablist" aria-label="Practice skills">{skills.map((s,i)=><button key={s.name} role="tab" id={`skill-tab-${i}`} aria-controls="skill-preview" aria-selected={skill===i} tabIndex={skill===i?0:-1} className={skill===i?"active":""} onClick={()=>setSkill(i)} onKeyDown={e=>{if(["ArrowRight","ArrowLeft","Home","End"].includes(e.key)){e.preventDefault();const next=e.key==="Home"?0:e.key==="End"?3:(i+(e.key==="ArrowRight"?1:3))%4;setSkill(next);document.getElementById(`skill-tab-${next}`)?.focus();}}}><span>{s.icon}</span>{s.name}</button>)}</div><div className={`skill-panel ${skills[skill].color}`} id="skill-preview" role="tabpanel" aria-labelledby={`skill-tab-${skill}`}><div className="skill-copy"><span className="section-label">{skills[skill].name.toUpperCase()} PRACTICE</span><h3>{skills[skill].title}</h3><p>{skills[skill].description}</p><div className="skill-tags">{skills[skill].tags.map(t=><span key={t}>✓ {t}</span>)}</div><button className="text-button" onClick={start}>প্র্যাকটিস শুরু করো <span>↗</span></button></div><Preview skill={skill}/></div></div></section>
+    <section id="study-plan" className="section wrap"><div className="section-heading reveal"><span className="section-label">YOUR JOURNEY, SIMPLIFIED</span><h2>তিনটি ধাপে<br/><span>গুছিয়ে নাও তোমার প্রস্তুতি।</span></h2></div><div className="steps-grid">{[["01","তোমার লক্ষ্য সেট করো","বর্তমান লেভেল, target band আর পরীক্ষার তারিখ দিয়ে প্রোফাইল সাজাও।","◎"],["02","নিজের প্ল্যান ফলো করো","তোমার দুর্বলতা আর সময় অনুযায়ী তৈরি daily tasks নিয়ে প্র্যাকটিস করো।","▦"],["03","নিজের উন্নতি দেখতে থাকো","ফিডব্যাক রিভিউ করো, progress track করো, পরের সেশনে আরও ভালো করো।","↗"]].map(([n,title,desc,icon])=><article className="step reveal" key={n}><div><span>{n}</span><i>{icon}</i></div><h3>{title}</h3><p>{desc}</p></article>)}</div></section>
+    <section className="habit-section"><div className="wrap habit-grid"><div className="reveal"><span className="section-label">SHOW UP FOR YOUR FUTURE</span><h2>একটু একটু করে।<br/><span className="gradient-text">প্রতিদিন আরও ভালো।</span></h2><p>একদিনে সব নয়। একটি writing task, কিছু নতুন শব্দ, আর একটু speaking practice — ছোট অভ্যাসেই তৈরি হোক বড় পরিবর্তন।</p><button className="coach-button" onClick={start}>আমার প্রস্তুতি শুরু করি <span>↗</span></button></div><div className="habit-card reveal"><div className="panel-heading"><b>Your weekly rhythm</b><span>✦ KEEP GOING</span></div><div className="week-days">{["Sat","Sun","Mon","Tue","Wed","Thu","Fri"].map((day,i)=><div key={day}><span>{day}</span><i className={i<5?"done":""}>{i<5?"✓":"·"}</i></div>)}</div><div className="habit-word"><small>ONE WORD AT A TIME</small><h3>Perseverance</h3><p>অধ্যবসায় · Keep going, even when it feels difficult.</p></div><small className="subtle">Sample activity · Your progress appears after practice</small></div></div></section>
+    <section id="faq" className="section wrap faq-grid"><div className="reveal"><span className="section-label">LET’S CLEAR THINGS UP</span><h2>মনে প্রশ্ন আছে?<br/><span>উত্তর এখানেই।</span></h2><p>শুরু করার আগে যা জানা দরকার।</p></div><div className="faq-list">{faqs.map(([q,a],i)=><details key={q} open={i===0}><summary>{q}<span>+</span></summary><p>{a}</p></details>)}</div></section>
+    <section className="final-cta wrap reveal"><span className="section-label">YOUR NEXT CHAPTER STARTS HERE</span><h2>স্বপ্নটা তোমার।<br/>প্রস্তুতির সঙ্গী আমরা।</h2><p>একটি ছোট পদক্ষেপেই শুরু হোক তোমার IELTS journey।</p><button className="coach-button" onClick={start}>চলো, শুরু করি <span>↗</span></button><small>Free to start. Built around you.</small></section>
+    <footer className="coach-footer wrap"><div><a className="coach-brand" href="#home">IELTS<span>coach</span><sup>AI</sup></a><p>তোমার লক্ষ্য। তোমার গতি। তোমার IELTS coach।</p></div><div className="footer-links"><a href="#practice">Practice</a><a href="#study-plan">Study plan</a><a href="#faq">FAQ</a><button onClick={login}>Sign in ↗</button></div><div className="footer-bottom"><span>© {new Date().getFullYear()} IELTS AI Coach</span><span>Independent IELTS practice platform. Practice scores are estimates.</span></div></footer>
+  </main>;
 }
