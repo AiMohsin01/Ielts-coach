@@ -11,7 +11,8 @@ const profileSchema = z.object({
   examDate: z.string().date().nullable(),
   dailyStudyMinutes: z.number().int().min(15).max(720).nullable()
 });
-const select = "weak_skills AS \"weakSkills\", current_level AS \"currentLevel\", target_band AS \"targetBand\", exam_date AS \"examDate\", daily_study_minutes AS \"dailyStudyMinutes\", onboarding_completed AS \"onboardingCompleted\"";
+// pg returns NUMERIC columns as strings; expose numbers consistently to form clients.
+const select = "weak_skills AS \"weakSkills\", current_level::double precision AS \"currentLevel\", target_band::double precision AS \"targetBand\", exam_date AS \"examDate\", daily_study_minutes AS \"dailyStudyMinutes\", onboarding_completed AS \"onboardingCompleted\"";
 router.get("/", requireAuth, async (req: AuthenticatedRequest, res, next) => {
   try { const result = await pool.query(`SELECT ${select} FROM profiles WHERE user_id = $1`, [req.user!.id]); res.json({ profile: result.rows[0] }); } catch (e) { next(e); }
 });

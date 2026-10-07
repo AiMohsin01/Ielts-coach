@@ -20,7 +20,15 @@ test("completed plans survive regeneration, concurrent requests and profile upda
     assert.equal((await request("/api/coach/onboarding",cookie,"PUT",{...profile,weakSkills:["speaking"]})).status,200);
     const after=(await (await request("/api/coach/dashboard",cookie)).json()).tasks;
     assert.deepEqual(after.map((t:any)=>t.id),initial.map((t:any)=>t.id));assert.equal(after[0].status,"completed");
-    assert.deepEqual((await (await request("/api/profile",cookie)).json()).profile.weakSkills,["speaking"]);
+    const savedProfile=(await (await request("/api/profile",cookie)).json()).profile;
+    assert.deepEqual(savedProfile.weakSkills,["speaking"]);
+    // PostgreSQL NUMERIC values must survive load/save without editing the inputs.
+    assert.equal(typeof savedProfile.currentLevel,"number");
+    assert.equal(typeof savedProfile.targetBand,"number");
+    assert.equal(savedProfile.currentLevel,5);assert.equal(savedProfile.targetBand,6.5);
+    assert.equal((await request("/api/coach/onboarding",cookie,"PUT",{...savedProfile,examDate:savedProfile.examDate.slice(0,10)})).status,200);
+    const savedAgain=await request("/api/profile",cookie,"PUT",{...savedProfile,examDate:savedProfile.examDate.slice(0,10)});
+    assert.equal(savedAgain.status,200);assert.equal(typeof (await savedAgain.json()).profile.targetBand,"number");
     const words=(await (await request("/api/coach/vocabulary",cookie)).json()).words;assert.ok(words.length>=24);
     assert.equal((await request("/api/coach/vocabulary/"+words[0].id,cookie,"PATCH",{masteryLevel:3})).status,200);
     for(const skill of ["reading","listening","speaking"]){const list=(await (await request("/api/practice/"+skill+"/tests",cookie)).json()).tests;assert.ok(list.some((t:any)=>t.title.startsWith("Sample")));}
