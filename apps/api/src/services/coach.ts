@@ -1,6 +1,39 @@
 import { pool } from "../db/pool.js";
-type Skill = "writing"|"speaking"|"reading"|"listening";
-const title = (s: string) => s[0].toUpperCase()+s.slice(1);
-export async function generateDailyPlan(userId:string,date:string){const p=await pool.query("SELECT current_level AS \"currentLevel\",target_band AS \"targetBand\",exam_date AS \"examDate\",daily_study_minutes AS \"minutes\" FROM profiles WHERE user_id=$1",[userId]);const profile=p.rows[0];if(!profile?.minutes)return [];
- const scores=await pool.query("SELECT 'writing' skill,AVG(overall_band) score FROM writing_evaluations e JOIN writing_attempts a ON a.id=e.attempt_id WHERE a.user_id=$1 UNION ALL SELECT 'speaking',AVG(overall_band) FROM speaking_evaluations e JOIN speaking_attempts a ON a.id=e.attempt_id WHERE a.user_id=$1",[userId]);const map=new Map(scores.rows.filter(x=>x.score!==null).map(x=>[x.skill,Number(x.score)]));const base=profile.currentLevel??5;const ranked:Skill[]=(["writing","speaking","reading","listening"] as Skill[]).sort((a,b)=>(map.get(a)??base)-(map.get(b)??base));const weak=ranked[0];const minutes=Number(profile.minutes);const tasks:{type:string;description:string;duration:number;priority:number}[]=[];const primary=Math.min(60,Math.max(25,Math.round(minutes*.45)));tasks.push({type:weak,description:`${title(weak)} focused practice: address your lowest current skill.`,duration:primary,priority:1});if(minutes-primary>=20)tasks.push({type:"vocabulary",description:"Academic vocabulary flashcard review and active recall.",duration:Math.min(25,minutes-primary),priority:2});if(minutes-primary-25>=20)tasks.push({type:"grammar",description:"Targeted grammar practice based on your recurring errors.",duration:20,priority:2});const left=minutes-tasks.reduce((n,t)=>n+t.duration,0);if(left>=15)tasks.push({type:ranked[1],description:`Timed ${ranked[1]} practice to maintain balance.`,duration:left,priority:3});await pool.query("DELETE FROM study_plans WHERE user_id=$1 AND date=$2 AND status='pending'",[userId,date]);for(const t of tasks)await pool.query("INSERT INTO study_plans(user_id,date,task_type,task_description,duration,priority) VALUES($1,$2,$3,$4,$5,$6)",[userId,date,t.type,t.description,t.duration,t.priority]);return tasks;}
-export async function refreshRecommendations(userId:string){const weak=await pool.query("SELECT skill,category,label,occurrence_count AS count FROM student_weaknesses WHERE user_id=$1 ORDER BY occurrence_count DESC,last_seen_at DESC LIMIT 3",[userId]);await pool.query("DELETE FROM recommendations WHERE user_id=$1 AND created_at < NOW() - INTERVAL '1 day'",[userId]);for(const w of weak.rows)await pool.query("INSERT INTO recommendations(user_id,type,reason,content) VALUES($1,$2,$3,$4)",[userId,`${w.skill}_improvement`,`${w.label} has appeared ${w.count} times in your feedback.`,JSON.stringify({skill:w.skill,category:w.category,action:`Practice ${w.label}`})]);return weak.rows;}
+import { buildDailyPlan } from "./daily-plan.js";
+export async function generateDailyPlan(userId: string, date: string) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // Serialize double clicks and requests from different tabs for this learner.
+    const profileResult = await client.query('SELECT daily_study_minutes AS minutes, weak_skills AS "weakSkills" FROM profiles WHERE user_id=$1 FOR UPDATE', [userId]);
+    const existing = await client.query('SELECT id,task_type AS "taskType",task_description AS "taskDescription",duration,status,priority FROM study_plans WHERE user_id=$1 AND date=$2 ORDER BY priority,created_at', [userId, date]);
+    if (existing.rowCount) {
+      await client.query("COMMIT");
+      return existing.rows;
+    }
+    const profile = profileResult.rows[0];
+    if (!profile?.minutes) throw new Error("Complete your learning profile before creating a plan");
+    const results = await client.query("SELECT 'writing' skill,AVG(overall_band) score FROM writing_evaluations e JOIN writing_attempts a ON a.id=e.attempt_id WHERE a.user_id=$1 UNION ALL SELECT 'speaking',AVG(overall_band) FROM speaking_evaluations e JOIN speaking_attempts a ON a.id=e.attempt_id WHERE a.user_id=$1", [userId]);
+    const scores = Object.fromEntries(results.rows.filter(r => r.score !== null).map(r => [r.skill, Number(r.score)]));
+    const tasks = buildDailyPlan(Number(profile.minutes), profile.weakSkills ?? [], scores);
+    const saved = [];
+    for (const task of tasks) {
+      const result = await client.query('INSERT INTO study_plans(user_id,date,task_type,task_description,duration,priority) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,task_type AS "taskType",task_description AS "taskDescription",duration,status,priority', [userId, date, task.type, task.description, task.duration, task.priority]);
+      saved.push(result.rows[0]);
+    }
+    await client.query("COMMIT");
+    return saved;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
+}
+export async function refreshRecommendations(userId: string) {
+  const weak = await pool.query("SELECT skill,category,label,occurrence_count AS count FROM student_weaknesses WHERE user_id=$1 ORDER BY occurrence_count DESC,last_seen_at DESC LIMIT 3", [userId]);
+  for (const item of weak.rows) {
+    const type = item.skill + "_improvement";
+    const reason = item.label + " has appeared " + item.count + " times in your feedback.";
+    await pool.query("INSERT INTO recommendations(user_id,type,reason,content) SELECT $1,$2,$3,$4 WHERE NOT EXISTS (SELECT 1 FROM recommendations WHERE user_id=$1 AND type=$2 AND reason=$3 AND created_at >= NOW() - INTERVAL '1 day')", [userId, type, reason, JSON.stringify({ skill: item.skill, category: item.category, action: "Practice " + item.label })]);
+  }
+  return weak.rows;
+}

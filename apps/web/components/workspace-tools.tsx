@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { Icon } from "./dashboard";
-import Coach from "../app/coach/page";
-import Vocabulary from "../app/vocabulary/page";
+import { StudyCoach as Coach } from "./study-coach";
+import { VocabularyDeck as Vocabulary } from "./vocabulary-deck";
 import Report from "../app/report/page";
 import { menuGroups } from "./workspace-navigation";
 export function WorkspaceTools({section}:{section:string}) {

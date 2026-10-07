@@ -19,6 +19,9 @@ import libraryRoutes from "./routes/library.routes.js";
 import toolsRoutes from "./routes/tools.routes.js";
 import { errorHandler, notFound } from "./middleware/error-handler.js";
 import { requireTrustedOrigin } from "./middleware/request-security.js";
+import { requireAuth } from "./middleware/auth.js";
+import { pool } from "./db/pool.js";
+import type { AuthenticatedRequest } from "./types.js";
 
 export const app = express();
 app.set("trust proxy", 1);
@@ -27,7 +30,15 @@ app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 app.use(requireTrustedOrigin);
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const url = "/uploads" + req.path;
+    const allowed = await pool.query("SELECT 1 FROM speaking_attempts WHERE user_id=$1 AND audio_url=$2 UNION ALL SELECT 1 FROM listening_sections s JOIN listening_tests t ON t.id=s.test_id WHERE t.is_published=TRUE AND s.audio_url=$2 LIMIT 1", [req.user!.id, url]);
+    if (!allowed.rowCount) { res.status(404).json({ message: "Recording is not available" }); return; }
+    res.setHeader("Cache-Control", "private, no-store");
+    next();
+  } catch (error) { next(error); }
+}, express.static("uploads", { cacheControl: false }));
 app.get("/", (_req, res) => res.json({ message: "IELTS AI Coach API is running", health: "/health", webClient: config.clientUrl }));
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, skip: req => !["/login", "/register"].includes(req.path), standardHeaders: "draft-7", legacyHeaders: false }), authRoutes);
