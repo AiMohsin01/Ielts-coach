@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { StudyCalendar } from "./study-calendar";
 type Task = { id:string; taskType:string; taskDescription:string; duration:number; status:string };
 type CoachData = { tasks:Task[]; targetBand:number|null; examCountdown:number|null; studyStreak:number; bandPrediction:number|null; recommendations:{id:string;type:string;reason:string}[]; vocabulary:{mastered:number;due:number} };
 const taskLink = (type:string) => ["writing","reading","listening","speaking"].includes(type) ? "/practice/"+type : type==="vocabulary" ? "/dashboard/vocabulary" : "/dashboard/grammar";
@@ -22,7 +23,7 @@ export function StudyCoach() {
     try{await api("/api/coach/plan/"+task.id,{method:"PATCH",body:JSON.stringify({status:"completed"})});await load();setMessage("Task completed. Your progress is saved.");}
     catch(e){setError(e instanceof Error?e.message:"Could not save progress.");}finally{setBusy("");}
   };
-  return <section className="p-5 sm:p-9">
+  return <section className="feature-page">
     <div className="flex flex-wrap items-center justify-between gap-3"><a href="/" className="text-sm font-semibold text-ocean">← Overview</a><a href="/onboarding" className="btn-secondary">Edit learning profile</a></div>
     <h1 className="mt-7 text-3xl font-bold">Your study plan</h1>
     <p className="mt-2 text-slate-500">A daily roadmap based on your study time and priority skills.</p>
@@ -34,6 +35,7 @@ export function StudyCoach() {
         <p role="status" aria-live="polite" className="mt-3 text-ocean">{message}</p>
         {data.tasks.length?<div className="mt-4 space-y-3">{data.tasks.map(task=><article className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-mist p-4" key={task.id}><div className="flex-1"><h3 className="font-bold capitalize">{task.taskType} · {task.duration} minutes</h3><p className="mt-1 text-sm text-slate-600">{task.taskDescription}</p></div><div className="flex flex-wrap gap-2"><a className="btn-secondary text-sm" href={taskLink(task.taskType)}>Start practice →</a><button className="btn-primary text-sm" disabled={!!busy||task.status==="completed"} onClick={()=>complete(task)}>{task.status==="completed"?"✓ Completed":busy===task.id?"Saving…":"Mark done"}</button></div></article>)}</div>:<p className="mt-4">Complete your <a href="/onboarding" className="underline">learning profile</a>, then generate your plan.</p>}
       </section>
+      <StudyCalendar key={data.tasks.map(t=>t.id+t.status).join(",")}/>
       <div className="mt-6 grid gap-6 md:grid-cols-2"><section className="card"><h2 className="text-xl font-bold">Recommendations</h2>{data.recommendations.length?data.recommendations.map(r=><article className="mt-3 rounded-xl bg-red-50 p-4" key={r.id}><b className="capitalize">{r.type.replaceAll("_"," ")}</b><p className="mt-1 text-sm">{r.reason}</p></article>):<p className="mt-3 text-slate-500">Recommendations appear after evaluated practice. AI feedback requires a configured provider.</p>}</section><section className="card"><h2 className="text-xl font-bold">Vocabulary progress</h2><p className="mt-4 text-3xl font-bold">{data.vocabulary.mastered} <span className="text-base">mastered words</span></p><p className="mt-2">{data.vocabulary.due} words due for review</p><a className="btn-secondary mt-5" href="/dashboard/vocabulary">Open flashcards →</a><a className="btn-secondary mt-3" href="/dashboard/content-library">Open free video library →</a></section></div>
     </>}
   </section>;

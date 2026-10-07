@@ -10,7 +10,8 @@
     "lint": "npm run lint --workspaces",
     "db:migrate": "npm run db:migrate -w @ielts/api",
     "db:seed": "npm run db:seed -w @ielts/api",
-    "test:e2e": "npm run test:e2e -w @ielts/api"
+    "test:e2e": "npm run test:e2e -w @ielts/api",
+    "test:regression": "cd apps/api && node --import tsx --test ../../tests/daily-plan.test.ts ../../tests/coach-and-content.test.ts ../../tests/library.test.ts"
   },
   "devDependencies": { "concurrently": "^9.1.2" },
   "overrides": { "shell-quote": "^1.12.0" }

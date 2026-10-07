@@ -4,6 +4,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import type {PoolClient} from "pg";
 import { pool } from "../db/pool.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types.js";
@@ -26,7 +27,38 @@ router.post("/listening/tests/:testId/sections", requireAuth, requireRole(...con
 router.post("/listening/sections/:sectionId/questions", requireAuth, requireRole(...contentRoles), async(req,res,next)=>{try{const q=question.parse(req.body);const r=await pool.query("INSERT INTO listening_questions(section_id,question_number,question_type,prompt,options,accepted_answers,explanation,points) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",[req.params.sectionId,q.questionNumber,q.questionType,q.prompt,JSON.stringify(q.options),JSON.stringify(q.acceptedAnswers),q.explanation??null,q.points]);res.status(201).json({question:r.rows[0]})}catch(e){if(e instanceof z.ZodError)return res.status(400).json({message:e.issues[0].message});next(e)}});
 router.get("/listening/tests/:testId", requireAuth, async(req:AuthenticatedRequest,res,next)=>{try{const published=isStaff(req)?"":"AND t.is_published=TRUE";const r=await pool.query(`SELECT t.id,t.title,t.description,t.duration_minutes AS "durationMinutes",COALESCE(json_agg(json_build_object('id',s.id,'sectionNumber',s.section_number,'title',s.title,'audioUrl',s.audio_url,'transcript',s.transcript,'instructions',s.instructions,'questions',(SELECT COALESCE(json_agg(json_build_object('id',q.id,'questionNumber',q.question_number,'questionType',q.question_type,'prompt',q.prompt,'options',q.options,'points',q.points) ORDER BY q.question_number),'[]') FROM listening_questions q WHERE q.section_id=s.id)) ORDER BY s.section_number) FILTER(WHERE s.id IS NOT NULL),'[]') AS sections FROM listening_tests t LEFT JOIN listening_sections s ON s.test_id=t.id WHERE t.id=$1 ${published} GROUP BY t.id`,[req.params.testId]);if(!r.rowCount)return res.status(404).json({message:"Test not found"});res.json({test:r.rows[0]})}catch(e){next(e)}});
 
-async function submitObjective(kind:"listening"|"reading", req:AuthenticatedRequest,res:any,next:any){try{const d=answerPayload.parse(req.body);const id=req.params.testId;const table=`${kind}_tests`, qTable=`${kind}_questions`, attemptTable=`${kind}_attempts`, answerTable=`${kind}_answers`;const available=await pool.query(`SELECT q.id,q.accepted_answers,q.points FROM ${qTable} q JOIN ${kind === "listening" ? "listening_sections s ON q.section_id=s.id" : "reading_passages s ON q.passage_id=s.id"} JOIN ${table} t ON s.test_id=t.id WHERE t.id=$1 AND t.is_published=TRUE`,[id]);if(!available.rowCount)return res.status(404).json({message:"Published test not found"});const map=new Map(available.rows.map(q=>[q.id,q]));const seen=new Set<string>();const validAnswers=d.answers.filter(a=>{if(!map.has(a.questionId)||seen.has(a.questionId))return false;seen.add(a.questionId);return true;});const client=await pool.connect();try{await client.query("BEGIN");const a=await client.query(`INSERT INTO ${attemptTable}(user_id,test_id,status,submitted_at,raw_score,total_points) VALUES($1,$2,'submitted',NOW(),0,$3) RETURNING id`,[req.user!.id,id,available.rows.reduce((n,q)=>n+q.points,0)]);let score=0;for(const input of validAnswers){const q=map.get(input.questionId)!;const correct=q.accepted_answers.some((x:string)=>normalize(x)===normalize(input.answer));if(correct)score+=q.points;await client.query(`INSERT INTO ${answerTable}(attempt_id,question_id,answer,is_correct) VALUES($1,$2,$3,$4)`,[a.rows[0].id,input.questionId,JSON.stringify(input.answer),correct])}await client.query(`UPDATE ${attemptTable} SET raw_score=$1 WHERE id=$2`,[score,a.rows[0].id]);await client.query("COMMIT");res.status(201).json({attempt:{id:a.rows[0].id,rawScore:score,totalPoints:available.rows.reduce((n,q)=>n+q.points,0)}})}catch(e){await client.query("ROLLBACK");throw e}finally{client.release()}}catch(e){if(e instanceof z.ZodError)return res.status(400).json({message:e.issues[0].message});next(e)}}
+async function submitObjective(kind:"listening"|"reading",req:AuthenticatedRequest,res:any,next:any){
+  let client:PoolClient|undefined;
+  try{
+    client=await pool.connect();
+    const d=answerPayload.extend({submissionId:z.string().uuid().optional(),elapsedSeconds:z.number().int().min(0).max(86400).optional()}).parse(req.body);
+    const groupTable=kind==="listening"?"listening_sections":"reading_passages",groupColumn=kind==="listening"?"section_id":"passage_id";
+    const available=await client.query(`SELECT q.id,q.question_number AS "questionNumber",q.prompt,q.accepted_answers AS "acceptedAnswers",q.explanation,q.points FROM ${kind}_questions q JOIN ${groupTable} s ON q.${groupColumn}=s.id JOIN ${kind}_tests t ON s.test_id=t.id WHERE t.id=$1 AND t.is_published=TRUE ORDER BY q.question_number`,[req.params.testId]);
+    if(!available.rowCount)return res.status(404).json({message:"Published test not found"});
+    await client.query("BEGIN");
+    const id=d.submissionId??randomUUID(),total=available.rows.reduce((n,q)=>n+q.points,0);
+    const inserted=await client.query(`INSERT INTO ${kind}_attempts(id,user_id,test_id,status,started_at,submitted_at,raw_score,total_points) VALUES($1,$2,$3,'submitted',NOW()-($4::int*INTERVAL '1 second'),NOW(),0,$5) ON CONFLICT(id) DO NOTHING RETURNING id`,[id,req.user!.id,req.params.testId,d.elapsedSeconds??0,total]);
+    const attempt=await client.query(`SELECT id,raw_score AS "rawScore",total_points AS "totalPoints",submitted_at AS "submittedAt" FROM ${kind}_attempts WHERE id=$1 AND user_id=$2 AND test_id=$3 FOR UPDATE`,[id,req.user!.id,req.params.testId]);
+    if(!attempt.rowCount){await client.query("ROLLBACK");return res.status(409).json({message:"Start a new attempt before submitting."});}
+    if(inserted.rowCount){
+      const byId=new Map(available.rows.map(q=>[q.id,q])),seen=new Set<string>();let score=0;
+      for(const input of d.answers){if(!byId.has(input.questionId)||seen.has(input.questionId))continue;seen.add(input.questionId);const q=byId.get(input.questionId)!;const correct=q.acceptedAnswers.some((a:string)=>normalize(a)===normalize(input.answer));if(correct)score+=q.points;await client.query(`INSERT INTO ${kind}_answers(attempt_id,question_id,answer,is_correct) VALUES($1,$2,$3,$4)`,[id,input.questionId,JSON.stringify(input.answer),correct]);}
+      await client.query(`UPDATE ${kind}_attempts SET raw_score=$1 WHERE id=$2`,[score,id]);attempt.rows[0].rawScore=score;
+    }
+    const saved=await client.query(`SELECT question_id AS "questionId",answer,is_correct AS correct FROM ${kind}_answers WHERE attempt_id=$1`,[id]);
+    const savedById=new Map(saved.rows.map(a=>[a.questionId,a]));
+    const feedback=available.rows.map(q=>({...q,answer:savedById.get(q.id)?.answer??"",correct:savedById.get(q.id)?.correct??false}));
+    await client.query("COMMIT");res.status(inserted.rowCount?201:200).json({attempt:attempt.rows[0],feedback});
+  }catch(e){if(client)await client.query("ROLLBACK");if(e instanceof z.ZodError)return res.status(400).json({message:e.issues[0].message});next(e);}finally{client?.release();}
+}
+for(const kind of ["reading","listening"] as const){
+  router.get("/"+kind+"/attempts",requireAuth,async(req:AuthenticatedRequest,res,next)=>{try{const r=await pool.query(`SELECT a.id,a.test_id AS "testId",t.title,a.raw_score AS "rawScore",a.total_points AS "totalPoints",a.submitted_at AS "submittedAt" FROM ${kind}_attempts a JOIN ${kind}_tests t ON t.id=a.test_id WHERE a.user_id=$1 AND a.status='submitted' ORDER BY a.submitted_at DESC LIMIT 30`,[req.user!.id]);res.json({attempts:r.rows});}catch(e){next(e);}});
+  router.get("/"+kind+"/attempts/:id",requireAuth,async(req:AuthenticatedRequest,res,next)=>{try{
+    const id=z.string().uuid().parse(req.params.id),groupTable=kind==="reading"?"reading_passages":"listening_sections",groupColumn=kind==="reading"?"passage_id":"section_id";
+    const attempt=await pool.query(`SELECT a.id,a.test_id AS "testId",t.title,a.raw_score AS "rawScore",a.total_points AS "totalPoints",a.submitted_at AS "submittedAt" FROM ${kind}_attempts a JOIN ${kind}_tests t ON t.id=a.test_id WHERE a.id=$1 AND a.user_id=$2 AND a.status='submitted'`,[id,req.user!.id]);if(!attempt.rowCount)return res.status(404).json({message:"Attempt not found"});
+    const feedback=await pool.query(`SELECT q.id,q.question_number AS "questionNumber",q.prompt,q.accepted_answers AS "acceptedAnswers",q.explanation,q.points,COALESCE(a.answer,'""'::jsonb) AS answer,COALESCE(a.is_correct,FALSE) AS correct FROM ${kind}_questions q JOIN ${groupTable} g ON g.id=q.${groupColumn} LEFT JOIN ${kind}_answers a ON a.question_id=q.id AND a.attempt_id=$1 WHERE g.test_id=$2 ORDER BY q.question_number`,[id,attempt.rows[0].testId]);res.json({attempt:attempt.rows[0],feedback:feedback.rows});
+  }catch(e){next(e);}});
+}
 router.post("/listening/tests/:testId/submit",requireAuth,(req,res,next)=>submitObjective("listening",req,res,next));
 
 router.get("/reading/tests",requireAuth,async(req:AuthenticatedRequest,res,next)=>{try{const where=isStaff(req)?"":"WHERE is_published=TRUE";const r=await pool.query(`SELECT id,title,description,duration_minutes AS "durationMinutes" FROM reading_tests ${where} ORDER BY created_at DESC`);res.json({tests:r.rows})}catch(e){next(e)}});
