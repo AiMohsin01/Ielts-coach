@@ -1,4 +1,8 @@
-# IELTS AI Coach — Phases 1–2
+# Ielts-coach
+
+IELTS AI Coach — personalized IELTS preparation.
+
+The redesigned workspace includes a free content library with 11 modules and 294 YouTube lesson entries, Bengali study notes, saved learner progress, private notes, and the full navigation menu. Run all database migrations before starting the updated API. Local AI features require Ollama; live AI calls, paid checkout, and referral payouts are not enabled.
 
 Phase 1 provides the secure foundation: JWT authentication, student profile onboarding, and a responsive student dashboard. Phase 2 adds the IELTS practice data model and student flows for Listening, Reading, Writing, and Speaking.
 
