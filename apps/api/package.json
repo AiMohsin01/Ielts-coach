@@ -2,6 +2,7 @@
   "name": "@ielts/api",
   "private": true,
   "scripts": {
+    "start": "tsx src/fullstack-server.ts",
     "dev": "tsx watch src/server.ts",
     "build": "tsc --noEmit",
     "lint": "tsc --noEmit",

@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "workspaces": ["apps/*"],
   "scripts": {
+    "start": "npm run db:migrate && npm run start -w @ielts/api",
     "dev": "concurrently \"npm run dev -w @ielts/api\" \"npm run dev -w @ielts/web\"",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",

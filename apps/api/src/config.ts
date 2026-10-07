@@ -11,7 +11,7 @@ for (const key of required) if (!process.env[key]) throw new Error(`Missing requ
 export const config = {
   databaseUrl: process.env.DATABASE_URL!,
   jwtSecret: process.env.JWT_SECRET!,
-  clientUrl: process.env.CLIENT_URL ?? "http://localhost:3000",
+  clientUrl: process.env.CLIENT_URL ?? process.env.RENDER_EXTERNAL_URL ?? "http://localhost:3000",
   port: Number(process.env.PORT ?? 4000),
   isProduction: process.env.NODE_ENV === "production",
   aiProvider: process.env.AI_PROVIDER ?? "local",

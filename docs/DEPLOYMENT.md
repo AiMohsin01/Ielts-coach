@@ -26,3 +26,20 @@ The current local upload directory is suitable only for testing. Before public l
 4. Deploy API, then deploy web with the API URL.
 5. Run `RUN_E2E=true npm run test:e2e` against staging.
 6. Verify PWA installation, mobile layout, authentication, and accessibility on real devices.
+# Free full-stack Render deployment
+
+Use one Node web service for the website and API, with a Neon Free Postgres database.
+The repository includes `render.yaml` for this configuration. For manual setup:
+
+- Repository root: leave blank; branch: `main`; region: Singapore; compute: **Free**.
+- Build: `npm ci --include=dev && npm run build`.
+- Start: `npm start` (applies pending migrations, then serves Next.js and Express on the same port).
+- Health check: `/health`.
+- Private environment variables: `DATABASE_URL` from Neon, a generated `JWT_SECRET`, and `NODE_ENV=production`.
+- `CLIENT_URL` defaults to Render's `RENDER_EXTERNAL_URL`; set it explicitly if using a custom domain.
+- Do not set `NEXT_PUBLIC_API_URL`: production builds use same-origin API URLs and secure, HttpOnly login cookies.
+- Do not run the development database seed against production: it creates example staff accounts.
+
+Free hosting sleeps when inactive and has usage quotas. Local uploaded audio is not durable on Render Free.
+AI feedback requires a separately configured AI provider; a laptop's localhost Ollama service is not reachable from Render.
+No paid AI key or paid hosting plan is included in this setup.
