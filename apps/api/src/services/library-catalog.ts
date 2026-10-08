@@ -1,8 +1,9 @@
 import { additionalVideos, lessonTopic } from "./library-video-index.js";
 import { creators } from "./library-creators.js";
 import { englishLibrary } from "./library-english.js";
+import { detailedNotes,type NoteSection } from "./library-notes.js";
 export type LibraryVideo = { id: string; title: string; channel: string; topic: string };
-export type LibraryModule = { slug: string; title: string; description: string; icon: string; notes: string[]; notesBengali?:string[]; videos: LibraryVideo[] };
+export type LibraryModule = { slug: string; title: string; description: string; icon: string; notes: string[]; notesBengali?:string[]; noteSections?:NoteSection[]; videos: LibraryVideo[] };
 const video = (id: string, title: string, channel: string, topic: string): LibraryVideo => ({ id, title, channel, topic });
 export const libraryModules: LibraryModule[] = [
   { slug: "00-introduction", title: "IELTS পরিচিতি", description: "শুরু থেকে — IELTS কী, কোন পরীক্ষা বেছে নেবেন, এবং প্রস্তুতি কীভাবে শুরু করবেন।", icon: "book", notes: ["আপনার বিশ্ববিদ্যালয়, ভিসা বা পেশাগত প্রতিষ্ঠানের শর্ত দেখে Academic অথবা General Training বেছে নিন। UKVI দরকার কি না, আবেদন গ্রহণকারী প্রতিষ্ঠানের কাছে নিশ্চিত করুন।", "Listening, Reading, Writing ও Speaking — চারটি দক্ষতা আলাদাভাবে অনুশীলন করুন। শুধু সামগ্রিক band নয়, প্রতিটি skill-এর প্রয়োজনীয় score লিখে রাখুন।", "প্রথমে একটি diagnostic practice দিন। ভুলের তালিকা করে প্রতিদিনের সময় ভাগ করুন: শেখা, practice, এবং ভুল বিশ্লেষণ।", "ফি, পরিচয়পত্র ও booking policy দেশ ও test centre অনুযায়ী বদলায়। নিবন্ধনের আগে British Council বা IDP-এর অফিসিয়াল নির্দেশনা দেখুন।"], videos: [video("j16s7ay3Bsw", "Overview of IELTS | IELTS Prepare by IDP (Episode 1)", "IELTS by IDP", "What is IELTS?"),video("Lcp8h9AT-Jg","IELTS Basics — Introduction to the IELTS Exam","engVid","What is IELTS?"),video("6IqMXqIEtMw","Introduction of IELTS | IELTS Class 01 | Free IELTS Course","IELTS Daily","What is IELTS?"),video("AOv0aKMhT40","IELTS test for UK visas (UKVI) — by IDP Education","IELTS by IDP","Choosing your test"),video("9CRnpLpTkUM","IELTS Academic or General Training: Which do you need?","E2 IELTS","Choosing your test")] },
@@ -26,6 +27,7 @@ export function youtubeId(value: string): string | null {
   } catch { return null; }
 }
 for (const module of libraryModules) {
+  module.noteSections=detailedNotes[module.slug];
   const english=englishLibrary[module.slug];
   if(english){module.notesBengali=module.notes;module.title=english.title;module.description=english.description;module.notes=english.notes;}
   for (const line of (additionalVideos[module.slug]??"").split("\n").filter(Boolean)) {

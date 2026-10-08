@@ -10,6 +10,10 @@ test("completed plans survive regeneration, concurrent requests and profile upda
     const register=await request("/api/auth/register","","POST",{name:"Disposable Coach QA",email:"coach-qa-"+randomUUID()+"@example.test",password:randomUUID()});
     assert.equal(register.status,201);id=(await register.json()).user.id;
     const cookie=register.headers.get("set-cookie")!.split(";")[0];
+    // Older seeded accounts may have no profile yet: loading stays safe and saving repairs it.
+    await pool.query("DELETE FROM profiles WHERE user_id=$1",[id]);
+    assert.equal((await (await request("/api/profile",cookie)).json()).profile,null);
+    assert.equal((await (await request("/api/coach/plan/roadmap",cookie)).json()).profile.complete,false);
     const profile={currentLevel:5,targetBand:6.5,examDate:"2027-01-01",dailyStudyMinutes:60,weakSkills:["reading"]};
     assert.equal((await request("/api/coach/onboarding",cookie,"PUT",profile)).status,200);
     const initial=(await (await request("/api/coach/dashboard",cookie)).json()).tasks;
@@ -29,7 +33,22 @@ test("completed plans survive regeneration, concurrent requests and profile upda
     assert.equal((await request("/api/coach/onboarding",cookie,"PUT",{...savedProfile,examDate:savedProfile.examDate.slice(0,10)})).status,200);
     const savedAgain=await request("/api/profile",cookie,"PUT",{...savedProfile,examDate:savedProfile.examDate.slice(0,10)});
     assert.equal(savedAgain.status,200);assert.equal(typeof (await savedAgain.json()).profile.targetBand,"number");
-    const words=(await (await request("/api/coach/vocabulary",cookie)).json()).words;assert.ok(words.length>=24);
+    const roadmap=(await (await request("/api/coach/plan/roadmap",cookie)).json());
+    assert.ok(roadmap.profile.startDate&&roadmap.profile.endDate);
+    assert.ok(roadmap.tasks.some((t:any)=>t.date>roadmap.today&&t.title&&t.href&&t.reason));
+    assert.ok(roadmap.tasks.every((t:any)=>t.date<profile.examDate));
+    const repeats=await Promise.all([request("/api/coach/plan/roadmap",cookie,"POST",{}),request("/api/coach/plan/roadmap",cookie,"POST",{})]);
+    assert.ok((await Promise.all(repeats.map(r=>r.json()))).every(r=>r.addedTasks===0));
+    const future=roadmap.tasks.find((t:any)=>t.date>roadmap.today);
+    assert.equal((await request("/api/coach/plan/"+future.id,cookie,"PATCH",{status:"completed"})).status,200);
+    await request("/api/coach/plan/roadmap",cookie,"POST",{});
+    const persisted=(await (await request("/api/coach/plan/roadmap",cookie)).json()).tasks;
+    assert.equal(persisted.length,roadmap.tasks.length);assert.equal(persisted.find((t:any)=>t.id===future.id).status,"completed");
+    assert.equal((await request("/api/coach/plan/"+future.id,cookie,"PATCH",{status:"skipped"})).status,200);
+    assert.equal((await request("/api/coach/plan/"+future.id,cookie,"PATCH",{status:"pending"})).status,200);
+    assert.equal((await request("/api/coach/plan/roadmap")).status,401);
+    const words=(await (await request("/api/coach/vocabulary",cookie)).json()).words;assert.ok(words.length>=84);
+    assert.ok(words.some((w:any)=>w.word==="longevity"&&w.topic==="Aging & Population"));
     assert.equal((await request("/api/coach/vocabulary/"+words[0].id,cookie,"PATCH",{masteryLevel:3})).status,200);
     for(const skill of ["reading","listening","speaking"]){const list=(await (await request("/api/practice/"+skill+"/tests",cookie)).json()).tests;assert.ok(list.some((t:any)=>t.title.startsWith("Sample")));}
     const reading=(await (await request("/api/practice/reading/tests/11110000-0000-4000-8000-000000000001",cookie)).json()).test;
@@ -46,6 +65,8 @@ test("completed plans survive regeneration, concurrent requests and profile upda
     assert.equal((await request("/api/practice/reading/attempts/"+score.attempt.id)).status,401);
     const other=await request("/api/auth/register","","POST",{name:"Other Disposable QA",email:"coach-qa-"+randomUUID()+"@example.test",password:randomUUID()});otherId=(await other.json()).user.id;
     const otherCookie=other.headers.get("set-cookie")!.split(";")[0];
+    assert.equal((await request("/api/coach/plan/"+future.id,otherCookie,"PATCH",{status:"completed"})).status,404);
+    assert.equal((await (await request("/api/coach/plan/roadmap",otherCookie)).json()).tasks.length,0);
     assert.equal((await request("/api/practice/reading/attempts/"+score.attempt.id,otherCookie)).status,404);
     assert.equal((await request("/api/practice/reading/tests/"+reading.id+"/submit",otherCookie,"POST",payload)).status,409);
     const listening=(await (await request("/api/practice/listening/tests/11110000-0000-4000-8000-000000000003",cookie)).json()).test;
@@ -56,6 +77,8 @@ test("completed plans survive regeneration, concurrent requests and profile upda
     const month=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit"}).format(new Date());
     const calendar=await request("/api/coach/plan/history?month="+month,cookie);assert.equal(calendar.status,200);assert.ok((await calendar.json()).tasks.some((t:any)=>t.id===initial[0].id));
     const library=(await (await request("/api/library",cookie)).json()).modules;assert.equal(library.length,11);assert.ok(library.every((m:any)=>m.notes.length===4&&m.notesBengali.length===4&&!/[\u0980-\u09ff]/.test(m.description+" "+m.notes.join(" "))));
+    assert.ok(library.every((m:any)=>m.noteSections.length>=3&&m.noteSections.every((s:any)=>s.explanation.length>150&&s.examples.length>=2&&s.practice.length>40)));
+    assert.equal(library.find((m:any)=>m.slug==="02-reading").noteSections.length,8);
     assert.equal((await request("/uploads/nonexistent.webm")).status,401);
     assert.equal((await request("/uploads/nonexistent.webm",cookie)).status,404);
   } finally {
