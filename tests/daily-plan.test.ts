@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { buildDailyPlan, studyDate } from "../apps/api/src/services/daily-plan.js";
 import {buildRoadmapDay,roadmapDates} from "../apps/api/src/services/roadmap.js";
 import {expandedVocabulary} from "../shared/vocabulary-catalog.js";
+import {additionalVocabularyGroups,additionalTopicDescriptions} from "../shared/vocabulary-expansion.js";
+import {vocabularyGuide,topicDescriptions} from "../apps/web/lib/vocabulary-guide.js";
 test("plans respect every supported budget and database duration bounds", () => {
   for (let minutes = 15; minutes <= 720; minutes++) {
     const tasks = buildDailyPlan(minutes);
@@ -36,8 +38,19 @@ test("roadmaps rotate real activities, honour time budgets and stop before exam 
   assert.equal(buildRoadmapDay(60,[],27,28)[0].phase,"Review & readiness");
 });
 test("expanded vocabulary has complete original entries and unique words",()=>{
-  assert.equal(expandedVocabulary.length,60);
-  assert.equal(new Set(expandedVocabulary.map(w=>w.word)).size,60);
-  assert.equal(new Set(expandedVocabulary.map(w=>w.topic)).size,10);
+  assert.equal(expandedVocabulary.length,276);
+  assert.equal(new Set(expandedVocabulary.map(w=>w.word)).size,276);
+  assert.equal(new Set(expandedVocabulary.map(w=>w.topic)).size,31);
   assert.ok(expandedVocabulary.every(w=>w.meaning&&w.exampleSentence&&w.part&&w.bengali&&w.collocations.length===2&&w.synonyms[0]));
+  assert.ok(expandedVocabulary.every(w=>["Beginner","Intermediate","Advanced"].includes(w.level)&&w.usageNote));
+  assert.equal(Object.values(additionalVocabularyGroups).reduce((sum,group)=>sum+group.split("\n").length,0),216);
+  assert.equal(Object.keys(additionalTopicDescriptions).length,18);
+  for(const topic of Object.keys(additionalTopicDescriptions)){
+    assert.equal(expandedVocabulary.filter(w=>w.topic===topic).length,10);
+  }
+  assert.match(expandedVocabulary.find(w=>w.word==="accommodation")!.usageNote,/uncountable/);
+  assert.equal(Object.keys(vocabularyGuide).length,300);
+  const topics=new Set(Object.values(vocabularyGuide).map(w=>w.topic));
+  assert.equal(topics.size,33);
+  assert.ok([...topics].every(topic=>topicDescriptions[topic]));
 });

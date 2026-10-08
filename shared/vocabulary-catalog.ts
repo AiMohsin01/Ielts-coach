@@ -1,4 +1,5 @@
 // Original teaching definitions and examples, independently written for IELTS Coach.
+import { additionalVocabularyGroups } from "./vocabulary-expansion.js";
 const groups:Record<string,string>={
 "Aging & Population":`ageing|the process of becoming older|The town is planning services for its ageing population.|noun / adjective|বয়স বৃদ্ধি|an ageing population;healthy ageing|growing older
 elderly|older people, or relating to older age|The centre offers activities for elderly residents.|adjective|বয়স্ক|elderly residents;elderly relatives|older
@@ -61,4 +62,13 @@ revenue|money received by an organisation, especially from its activities|Ticket
 incentive|something that encourages a person to act|Discounts can provide an incentive to travel outside busy hours.|noun|প্রণোদনা|a financial incentive;offer an incentive|encouragement
 scarcity|a situation in which there is not enough of something|Water scarcity affects several communities in the region.|noun|স্বল্পতা|resource scarcity;water scarcity|shortage`,
 };
-export const expandedVocabulary=Object.entries(groups).flatMap(([topic,text])=>text.split("\n").map(line=>{const [word,meaning,exampleSentence,part,bengali,phrases,synonym]=line.split("|");return {word,meaning,exampleSentence,topic,part,bengali,collocations:phrases.split(";"),synonyms:[synonym],level:["longevity","demographic","empirical","replicate","craftsmanship","scarcity","hypothesis"].includes(word)?"Advanced":"Intermediate",usageNote:"Synonyms are meaning guides, not automatic replacements. Check the grammar and context in your own sentence."};}));
+export const expandedVocabulary = [...Object.entries(groups), ...Object.entries(additionalVocabularyGroups)]
+  .flatMap(([topic, text]) => text.split("\n").map(line => {
+    const [word, meaning, exampleSentence, part, bengali, phrases, synonym, studyLevel, usageTip] = line.split("|");
+    return {
+      word, meaning, exampleSentence, topic, part, bengali,
+      collocations: phrases.split(";"), synonyms: [synonym],
+      level: studyLevel || (["longevity", "demographic", "empirical", "replicate", "craftsmanship", "scarcity", "hypothesis"].includes(word) ? "Advanced" : "Intermediate"),
+      usageNote: usageTip || "Synonyms are meaning guides, not automatic replacements. Check the grammar and context in your own sentence.",
+    };
+  }));
