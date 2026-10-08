@@ -5,6 +5,7 @@ import {buildRoadmapDay,roadmapDates} from "../apps/api/src/services/roadmap.js"
 import {expandedVocabulary} from "../shared/vocabulary-catalog.js";
 import {additionalVocabularyGroups,additionalTopicDescriptions} from "../shared/vocabulary-expansion.js";
 import {vocabularyGuide,topicDescriptions} from "../apps/web/lib/vocabulary-guide.js";
+import {thousandVocabulary,thousandWordGroups} from "../shared/vocabulary-thousand.js";
 test("plans respect every supported budget and database duration bounds", () => {
   for (let minutes = 15; minutes <= 720; minutes++) {
     const tasks = buildDailyPlan(minutes);
@@ -38,19 +39,30 @@ test("roadmaps rotate real activities, honour time budgets and stop before exam 
   assert.equal(buildRoadmapDay(60,[],27,28)[0].phase,"Review & readiness");
 });
 test("expanded vocabulary has complete original entries and unique words",()=>{
-  assert.equal(expandedVocabulary.length,276);
-  assert.equal(new Set(expandedVocabulary.map(w=>w.word)).size,276);
-  assert.equal(new Set(expandedVocabulary.map(w=>w.topic)).size,31);
-  assert.ok(expandedVocabulary.every(w=>w.meaning&&w.exampleSentence&&w.part&&w.bengali&&w.collocations.length===2&&w.synonyms[0]));
+  assert.equal(expandedVocabulary.length,1276);
+  assert.equal(new Set(expandedVocabulary.map(w=>w.word)).size,1276);
+  assert.equal(new Set(expandedVocabulary.map(w=>w.topic)).size,40);
+  assert.ok(expandedVocabulary.every(w=>w.meaning&&w.exampleSentence&&w.part&&w.bengali&&w.collocations.length===2));
+  assert.ok(expandedVocabulary.every(w=>Array.isArray(w.synonyms)&&w.synonyms.every(s=>s.length>0)));
   assert.ok(expandedVocabulary.every(w=>["Beginner","Intermediate","Advanced"].includes(w.level)&&w.usageNote));
   assert.equal(Object.values(additionalVocabularyGroups).reduce((sum,group)=>sum+group.split("\n").length,0),216);
   assert.equal(Object.keys(additionalTopicDescriptions).length,18);
   for(const topic of Object.keys(additionalTopicDescriptions)){
-    assert.equal(expandedVocabulary.filter(w=>w.topic===topic).length,10);
+    assert.equal(expandedVocabulary.filter(w=>w.topic===topic).length,35);
   }
   assert.match(expandedVocabulary.find(w=>w.word==="accommodation")!.usageNote,/uncountable/);
-  assert.equal(Object.keys(vocabularyGuide).length,300);
+  assert.equal(Object.keys(vocabularyGuide).length,1300);
   const topics=new Set(Object.values(vocabularyGuide).map(w=>w.topic));
-  assert.equal(topics.size,33);
+  assert.equal(topics.size,40);
   assert.ok([...topics].every(topic=>topicDescriptions[topic]));
+});
+test("the thousand-word addition contains exactly 1000 complete unique entries across 40 decks",()=>{
+  assert.equal(thousandVocabulary.length,1000);
+  assert.equal(new Set(thousandVocabulary.map(w=>w.word)).size,1000);
+  assert.equal(Object.keys(thousandWordGroups).length,40);
+  for(const group of Object.values(thousandWordGroups))assert.equal(group.split("\n").length,25);
+  assert.equal(new Set(thousandVocabulary.map(w=>w.exampleSentence)).size,1000);
+  assert.ok(thousandVocabulary.every(w=>w.meaning.length>=10&&w.exampleSentence.length>=20&&/[\u0980-\u09ff]/.test(w.bengali)));
+  assert.ok(thousandVocabulary.every(w=>["noun","verb","adjective","adverb"].includes(w.part)&&w.collocations.length===2&&w.collocations.every(c=>c.length>3)));
+  assert.ok(thousandVocabulary.every(w=>/^[a-z]+(?:[ -][a-z]+)*$/.test(w.word)));
 });

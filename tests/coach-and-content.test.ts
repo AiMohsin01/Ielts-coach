@@ -47,9 +47,12 @@ test("completed plans survive regeneration, concurrent requests and profile upda
     assert.equal((await request("/api/coach/plan/"+future.id,cookie,"PATCH",{status:"skipped"})).status,200);
     assert.equal((await request("/api/coach/plan/"+future.id,cookie,"PATCH",{status:"pending"})).status,200);
     assert.equal((await request("/api/coach/plan/roadmap")).status,401);
-    const words=(await (await request("/api/coach/vocabulary",cookie)).json()).words;assert.ok(words.length>=300);
+    const words=(await (await request("/api/coach/vocabulary",cookie)).json()).words;assert.ok(words.length>=1300);
     // The original 24 starter words get their topics from the web guide.
-    assert.ok(new Set(words.filter((w:any)=>w.topic).map((w:any)=>w.topic)).size>=31);
+    assert.ok(new Set(words.filter((w:any)=>w.topic).map((w:any)=>w.topic)).size>=40);
+    const publishedCount=await pool.query("SELECT COUNT(*)::int AS count FROM vocabulary");
+    assert.equal(words.length,publishedCount.rows[0].count,"vocabulary must not be truncated at 1000 words");
+    assert.ok(words.some((w:any)=>w.word==="zoning"&&w.topic==="Cities & Housing"));
     assert.ok(words.some((w:any)=>w.word==="accountability"&&w.topic==="Government & Citizenship"));
     assert.ok(words.some((w:any)=>w.word==="satellite"&&w.topic==="Space & Astronomy"));
     assert.ok(words.some((w:any)=>w.word==="longevity"&&w.topic==="Aging & Population"));

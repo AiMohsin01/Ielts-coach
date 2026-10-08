@@ -1,5 +1,6 @@
 // Original teaching definitions and examples, independently written for IELTS Coach.
 import { additionalVocabularyGroups } from "./vocabulary-expansion.js";
+import { thousandVocabulary } from "./vocabulary-thousand.js";
 const groups:Record<string,string>={
 "Aging & Population":`ageing|the process of becoming older|The town is planning services for its ageing population.|noun / adjective|বয়স বৃদ্ধি|an ageing population;healthy ageing|growing older
 elderly|older people, or relating to older age|The centre offers activities for elderly residents.|adjective|বয়স্ক|elderly residents;elderly relatives|older
@@ -71,4 +72,4 @@ export const expandedVocabulary = [...Object.entries(groups), ...Object.entries(
       level: studyLevel || (["longevity", "demographic", "empirical", "replicate", "craftsmanship", "scarcity", "hypothesis"].includes(word) ? "Advanced" : "Intermediate"),
       usageNote: usageTip || "Synonyms are meaning guides, not automatic replacements. Check the grammar and context in your own sentence.",
     };
-  }));
+  })).concat(thousandVocabulary);

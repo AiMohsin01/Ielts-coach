@@ -38,5 +38,14 @@ export const topicDescriptions:Record<string,string>={
 };
 export const topicSlug=(topic:string)=>topic.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 Object.assign(topicDescriptions,additionalTopicDescriptions);
+Object.assign(topicDescriptions,{
+  "Academic Actions":"Describe investigation, decisions and the steps used to develop an argument.",
+  "Academic Descriptions":"Choose precise adjectives for evidence, reasoning and explanations.",
+  "Research & Evidence":"Explain surveys, measurements, findings and the strength of conclusions.",
+  "Schools & Universities":"Discuss courses, qualifications, campus life and teaching methods.",
+  "Time & Planning":"Describe schedules, priorities, stages and preparation for future events.",
+  "Quality & Evaluation":"Compare usefulness, accuracy, suitability and the limitations of an option.",
+  "Materials & Manufacturing":"Explain materials, production methods and the steps used to make products.",
+});
 for(const item of expandedVocabulary){vocabularyGuide[item.word]={topic:item.topic,bengali:item.bengali,collocations:item.collocations,part:item.part,level:item.level,mistake:item.usageNote};}
 Object.assign(topicDescriptions,{"Aging & Population":"Discuss age groups, retirement, longevity and demographic change.","Health & Wellbeing":"Describe healthy habits, preventive care and quality of life.","Technology & Innovation":"Explore automation, privacy, digital tools and new ideas.","Cities & Housing":"Discuss urban growth, infrastructure, housing and congestion.","Travel & Transport":"Words for journeys, commuting, fares and transport impacts.","Food & Agriculture":"Describe crops, growing conditions and food production.","Arts & Culture":"Talk about heritage, creative work, traditions and identity.","Science & Research":"Explain experiments, observations, evidence and research methods.","Employment & Careers":"Describe recruitment, collaboration and working conditions.","Economy & Finance":"Discuss spending, prices, investment and limited resources."});
